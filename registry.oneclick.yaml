@@ -1,0 +1,134 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: local-storage
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+  labels:
+    kubernetes.io/cluster-service: "true"
+    addonmanager.kubernetes.io/mode: EnsureExists
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: registry-pv
+  labels:
+    name: registry-pv
+spec:
+  capacity:
+    storage: 200Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  claimRef:
+    namespace: default
+    name: registry-pvc
+  storageClassName: local-storage
+  hostPath:
+    path: "/mnt/registry_data"
+
+---
+
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: registry-pvc
+spec:
+  storageClassName: local-storage
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+  selector:
+    matchLabels:
+      name: registry-pvc
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: registry
+  name: registry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: registry
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: registry
+    spec:
+      containers:
+      - image:  registry:2
+        imagePullPolicy: Always
+        name: registry
+        ports:
+        - containerPort: 5000
+        volumeMounts:
+        - name: registry-pv-storage
+          mountPath: /images
+      volumes:
+      - name: registry-pv-storage
+        persistentVolumeClaim:
+          claimName: registry-pvc
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 5
+          timeoutSeconds: 30
+        resources:  
+          requests:
+            memory: "64Mi"
+            cpu: "250m"
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+      restartPolicy: Always
+status: {}
+---
+apiVersion: v1
+kind: Service
+metadata: 
+  name: registry
+  labels:
+    app: registry
+spec: 
+  type: NodePort
+  ports: 
+    - port: 5000
+      targetPort: 5000
+      protocol: TCP
+  selector:
+    app: registry
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+ name: registry-ingress
+ annotations:
+   nginx.ingress.kubernetes.io/rewrite-target: /
+   kubernetes.io/tls-acme: "true"
+   ingress.kubernetes.io/secure-backends: "true"
+ namespace: default
+spec:
+ tls:
+   - hosts:
+     - registry.bff.dev
+ rules:
+   - host: registry.bff.dev
+     http: 
+       paths:
+         - path: /
+           backend: 
+             serviceName: registry
+             servicePort: 80
