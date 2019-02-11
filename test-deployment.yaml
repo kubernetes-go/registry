@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-mongo-deployment
+  labels:
+    app: my-mongo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-mongo
+  template:
+    metadata:
+      labels:
+        app: my-mongo
+    spec:
+      containers:
+      - name: my-mongo
+        image: registry:5000/dev/my-mongo
+        ports:
+        - containerPort: 27017
