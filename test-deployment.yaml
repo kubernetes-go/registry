@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: my-mongo-deployment
+  name: my-local-image-demo-dotnet-core
   labels:
-    app: my-mongo
+    app: my-local-image-demo-dotnet-core
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: my-mongo
+      app: my-local-image-demo-dotnet-core
   template:
     metadata:
       labels:
-        app: my-mongo
+        app: my-local-image-demo-dotnet-core
     spec:
       containers:
-      - name: my-mongo
-        image: registry:5000/dev/my-mongo
+      - name: my-local-image-demo-dotnet-core
+        image: registry.myhost.io/dev:0.2
         ports:
-        - containerPort: 27017
+        - containerPort: 80

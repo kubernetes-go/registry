@@ -73,16 +73,29 @@ spec:
         name: registry
         ports:
         - containerPort: 5000
+        env:
+        - name: REGISTRY_AUTH
+          value: htpasswd
+        - name: REGISTRY_AUTH_HTPASSWD_PATH
+          value: /auth/htpasswd
+        - name : REGISTRY_AUTH_HTPASSWD_REALM
+          value: Registry Realm
+        # - name : REGISTRY_HTTP_TLS_CERTIFICATE
+        #   value: /certs/domain.crt
+        # - name : REGISTRY_HTTP_TLS_KEY
+        #   value: /certs/domain.key
         volumeMounts:
         - name: registry-pv-storage
-          mountPath: /images
+          mountPath: /var/lib/registry
+        - name: auth
+          mountPath: /auth/
         livenessProbe:
           httpGet:
             path: /
             port: 5000
           initialDelaySeconds: 5
           timeoutSeconds: 30
-        resources:  
+        resources:
           requests:
             memory: "64Mi"
             cpu: "250m"
@@ -93,6 +106,12 @@ spec:
       - name: registry-pv-storage
         persistentVolumeClaim:
           claimName: registry-pvc
+      - name: certs
+        hostPath:
+          path: /mnt/registry_data/certs/
+      - name: auth
+        hostPath:
+          path: /mnt/registry_data/auth/
       restartPolicy: Always
 status: {}
 ---
@@ -119,16 +138,19 @@ metadata:
    nginx.ingress.kubernetes.io/rewrite-target: /
    kubernetes.io/tls-acme: "true"
    ingress.kubernetes.io/secure-backends: "true"
+   ingress.kubernetes.io/proxy-body-size: "600M"
+   nginx.org/client-max-body-size: "600M"
  namespace: default
 spec:
  tls:
    - hosts:
-     - registry.bff.dev
+     - registry.myhost.io
+     secretName: registry-tls-secret
  rules:
-   - host: registry.bff.dev
+   - host: registry.myhost.io
      http: 
        paths:
          - path: /
            backend: 
              serviceName: registry
-             servicePort: 80
+             servicePort: 5000
