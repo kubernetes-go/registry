@@ -76,10 +76,6 @@ spec:
         volumeMounts:
         - name: registry-pv-storage
           mountPath: /images
-      volumes:
-      - name: registry-pv-storage
-        persistentVolumeClaim:
-          claimName: registry-pvc
         livenessProbe:
           httpGet:
             path: /
@@ -93,6 +89,10 @@ spec:
           limits:
             memory: "128Mi"
             cpu: "500m"
+      volumes:
+      - name: registry-pv-storage
+        persistentVolumeClaim:
+          claimName: registry-pvc
       restartPolicy: Always
 status: {}
 ---
