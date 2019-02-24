@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-asp-net-core-webapi
+  labels:
+    app: sample-asp-net-core-webapi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sample-asp-net-core-webapi
+  template:
+    metadata:
+      labels:
+        app: sample-asp-net-core-webapi
+    spec:
+      containers:
+        - name: sample-asp-net-core-webapi
+          image: registry.myhost.home/sample-asp-net-core-webapi:1.0
+          ports:
+            - containerPort: 80
+          imagePullPolicy: Always
+      imagePullSecrets:
+        - name: regcred
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: sample-asp-net-core-webapi
+  labels:
+    name: sample-asp-net-core-webapi
+spec:
+  selector:
+    app: sample-asp-net-core-webapi
+  ports:
+    - port: 8080
+      targetPort: 80
+      protocol: TCP
+  type: NodePort
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: sample-asp-net-core-webapi-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+  namespace: default
+spec:
+  rules:
+    - host: aspnet.myhost.home
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: sample-asp-net-core-webapi
+              servicePort: 8080

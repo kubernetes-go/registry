@@ -1,6 +1,5 @@
 # registry
 
-
 ## 1. generate basic auth
 
 ```sh
@@ -13,7 +12,7 @@ $ sudo cp -a auth/ /mnt/registry_data/
 
 ```sh
 # please replace 'registry.myhost.io' by your customize local domain.
-$ openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout registry-domain.key -out registry-domain.crt -subj "/CN=registry.myhost.io/O=registry.myhost.io"
+$ openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout registry-domain.key -out registry-domain.crt -subj "/CN=registry.myhost.home/O=registry.myhost.home"
 ```
 
 ## 3. add the cert to Kubernetes
@@ -22,13 +21,32 @@ $ openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout registry-domain.ke
 $ kubectl create secret tls registry-tls-secret --key registry-domain.key --cert registry-domain.crt
 ```
 
-## 4. access from local
+## 4. depoy service and config ingress
+
+### IMPORTANT
+
+Please install [kubernetes-go/nginx-ingress](https://github.com/kubernetes-go/nginx-ingress) before the next steps.
+
+### 4.1 git clone this repo and run at root folder
+
+```sh
+$ kubectl apply -f registry.oneclick.yaml
+```
+
+### 4.2 install from raw
+
+```sh
+$ kubectl apply -f https://raw.githubusercontent.com/kubernetes-go/registry/master/registry.oneclick.yaml
+```
+
+
+## 5. access from local
 
 ### Ubuntu
 
 ```sh
 # copy to crt folder
-$ sudo cp registry-domain.crt /usr/local/share/ca-certificates/registry.myhost.io.crt
+$ sudo cp registry-domain.crt /usr/local/share/ca-certificates/registry.myhost.home.crt
 # install crt and focre freshed
 $ sudo update-ca-certificates --fresh
 # restart docker daemon
@@ -45,40 +63,27 @@ $ docker login
 ```
 
 
-## 5. access externally
+## 6. Test it in Kubernetes
 
-### Windows 
-
-edit your windows hosts file:
-
-```path
-$ c:\Windows\System32\Drivers\etc\hosts
-```
-
-append ths following line:
-
-```txt
-# the 10.96.185.164 is your kubernetes cluster nginx ingress cluster ip
-10.96.185.164 registry.myhost.io
-```
-
-copy the crt to Windows, and install it.
-
-## 6. deply registry to Kubernetes
-
-### IMPORTANT
-
-Please install [kubernetes-go/nginx-ingress](https://github.com/kubernetes-go/nginx-ingress) before the next steps.
-
-### 6.1 git clone this repo and run at root folder
+### 6.1 docker build a sample image
 
 ```sh
-$ kubectl apply -f registry.oneclick.yaml
+$ cd sample-asp-net-core-webapi
+$ docker build . -t registry.myhost.home/sample-asp-net-core-webapi:1.0
+$ docker push registry.myhost.home/sample-asp-net-core-webapi:1.0
 ```
 
-### 6.2 install from raw
+### 6.2 try to deploy the image to Kubernetes
+
+#### set docker registry auth for Kubernetes
+
 
 ```sh
-$ kubectl apply -f https://raw.githubusercontent.com/kubernetes-go/registry/master/registry.oneclick.yaml
+$ kubectl create secret docker-registry regcred --docker-server=registry.myhost.home --docker-username=admin --docker-password=admin@123 --docker-email=admin@myhost.home
 ```
 
+#### kubectl apply
+
+```sh
+$ kubectl apply -f test-deployment.yaml
+```
