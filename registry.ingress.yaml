@@ -1,26 +1,29 @@
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
- name: registry-ingress
- annotations:
-   nginx.ingress.kubernetes.io/rewrite-target: /
-   kubernetes.io/tls-acme: "true"
-   ingress.kubernetes.io/secure-backends: "true"
-   ingress.kubernetes.io/proxy-body-size: 2046m
-   ingress.kubernetes.io/client-max-body-size: 2046m
-   nginx.ingress.kubernetes.io/proxy-body-size: 2046m
-   nginx.ingress.kubernetes.io/client-max-body-size: 2046m
- namespace: default
+  name: registry-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    kubernetes.io/tls-acme: "true"
+    ingress.kubernetes.io/secure-backends: "true"
+    # ingress.kubernetes.io/proxy-body-size: 2046m
+    # ingress.kubernetes.io/client-max-body-size: 2046m
+    # nginx.ingress.kubernetes.io/client-max-body-size: "500m"
+    # nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-body-size: 4096m
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+
+  namespace: default
 spec:
- tls:
-   - hosts:
-     - registry.myhost.io
-     secretName: registry-tls-secret
- rules:
-   - host: registry.myhost.io
-     http: 
-       paths:
-         - path: /
-           backend: 
-             serviceName: registry
-             servicePort: 5000
+  tls:
+    - hosts:
+        - registry.myhost.io
+      secretName: registry-tls-secret
+  rules:
+    - host: registry.myhost.io
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: registry
+              servicePort: 5000

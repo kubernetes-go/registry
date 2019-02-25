@@ -11,7 +11,7 @@ $ docker run --entrypoint htpasswd --rm registry:2 -Bbn admin admin@123 | base64
 ```sh
 # please replace 'registry.myhost.io' by your customize local domain.
 $ openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout registry-domain.key -out registry-domain.crt -subj "/CN=registry.myhost.io/O=registry.myhost.io"
-```docker 
+```
 
 ## 3. add the cert to Kubernetes
 
@@ -36,7 +36,6 @@ $ kubectl apply -f registry.oneclick.yaml
 ```sh
 $ kubectl apply -f https://raw.githubusercontent.com/kubernetes-go/registry/master/registry.oneclick.yaml
 ```
-
 
 ## 5. access from local
 

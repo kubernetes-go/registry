@@ -174,10 +174,11 @@ metadata:
     nginx.ingress.kubernetes.io/rewrite-target: /
     kubernetes.io/tls-acme: "true"
     ingress.kubernetes.io/secure-backends: "true"
-    ingress.kubernetes.io/proxy-body-size: 2046m
-    ingress.kubernetes.io/client-max-body-size: 2046m
-    nginx.ingress.kubernetes.io/proxy-body-size: 2046m
-    nginx.ingress.kubernetes.io/client-max-body-size: 2046m
+    ingress.kubernetes.io/proxy-body-size: 2048m
+    ingress.kubernetes.io/client-max-body-size: 2048m
+    nginx.ingress.kubernetes.io/client-max-body-size: 2048m
+    nginx.ingress.kubernetes.io/proxy-body-size: 2048m
+
   namespace: default
 spec:
   tls:

@@ -1,17 +1,3 @@
-# FROM microsoft/dotnet:2.2-sdk
-# WORKDIR /app
-
-# # copy csproj and restore as distinct layers
-# COPY *.csproj ./
-# RUN dotnet restore
-
-# # copy and build everything else
-# COPY . ./
-# RUN dotnet publish -c Release -o /app
-# RUN ls
-# ENTRYPOINT ["dotnet", "./sample-asp-net-core-webapi.dll"]
-
-
 FROM microsoft/dotnet:2.2-aspnetcore-runtime AS base
 WORKDIR /app
 EXPOSE 80
