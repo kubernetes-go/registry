@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: sample-asp-net-core-webapi
-          image: registry.myhost.home/sample-asp-net-core-webapi:1.0
+          image: registry.myhost.io/sample-asp-net-core-webapi:1.0
           ports:
             - containerPort: 80
           imagePullPolicy: Always
@@ -49,7 +49,7 @@ metadata:
   namespace: default
 spec:
   rules:
-    - host: aspnet.myhost.home
+    - host: aspnet.myhost.io
       http:
         paths:
           - path: /

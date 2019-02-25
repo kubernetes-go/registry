@@ -9,7 +9,14 @@
 #     addonmanager.kubernetes.io/mode: EnsureExists
 # provisioner: kubernetes.io/no-provisioner
 # volumeBindingMode: WaitForFirstConsumer
-
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: docker-registry
+type: Opaque
+data:
+  HTPASSWD: YWRtaW46JDJ5JDA1JFdsWDUySG1mLm11RzdPTTloOEdMenU5U2kxVnk5c21HcVdDVHFJN0EyOWQvS1lrMVVjbzhHCgo=
 ---
 apiVersion: v1
 kind: PersistentVolume
@@ -21,7 +28,7 @@ spec:
   capacity:
     storage: 100Gi
   accessModes:
-  - ReadWriteOnce
+    - ReadWriteOnce
   persistentVolumeReclaimPolicy: Recycle
   claimRef:
     namespace: default
@@ -31,7 +38,35 @@ spec:
     path: "/mnt/registry_data"
 
 ---
-
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: docker-registry
+data:
+  registry-config.yml: |
+    version: 0.1
+    log:
+      fields:
+        service: registry
+    storage:
+      cache:
+        blobdescriptor: inmemory
+      filesystem:
+        rootdirectory: /var/lib/registry
+    http:
+      addr: :5000
+      headers:
+        X-Content-Type-Options: [nosniff]
+    auth:
+      htpasswd:
+        realm: basic-realm
+        path: /auth/htpasswd
+    health:
+      storagedriver:
+        enabled: true
+        interval: 10s
+        threshold: 3
+---
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
@@ -39,10 +74,10 @@ metadata:
 spec:
   storageClassName: local-storage
   accessModes:
-  - ReadWriteOnce
+    - ReadWriteOnce
   resources:
     requests:
-      storage: 20Gi
+      storage: 100Gi
   selector:
     matchLabels:
       name: registry-pvc
@@ -68,44 +103,45 @@ spec:
         app: registry
     spec:
       containers:
-      - image:  registry:2
-        imagePullPolicy: Always
-        name: registry
-        ports:
-        - containerPort: 5000
-        env:
-        - name: REGISTRY_AUTH
-          value: htpasswd
-        - name: REGISTRY_AUTH_HTPASSWD_PATH
-          value: /auth/htpasswd
-        - name : REGISTRY_AUTH_HTPASSWD_REALM
-          value: Registry Realm
-        # - name : REGISTRY_HTTP_TLS_CERTIFICATE
-        #   value: /certs/domain.crt
-        # - name : REGISTRY_HTTP_TLS_KEY
-        #   value: /certs/domain.key
-        volumeMounts:
-        - name: registry-pv-storage
-          mountPath: /var/lib/registry
-        - name: registry-pv-storage
-          mountPath: /auth
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 5000
-          initialDelaySeconds: 5
-          timeoutSeconds: 30
-        resources:
-          requests:
-            memory: "64Mi"
-            cpu: "250m"
-          limits:
-            memory: "128Mi"
-            cpu: "500m"
+        - image: registry:2
+          imagePullPolicy: Always
+          name: registry
+          ports:
+            - name: http
+              containerPort: 5000
+              protocol: TCP
+          volumeMounts:
+            - name: storage
+              mountPath: /var/lib/registry
+            # - name: config
+            #   mountPath: /etc/docker/registry
+            #   readOnly: true
+            - name: htpasswd
+              mountPath: /auth
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 5
+            timeoutSeconds: 30
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "500m"
+            limits:
+              memory: "256Mi"
+              cpu: "1000m"
       volumes:
-      - name: registry-pv-storage
-        persistentVolumeClaim:
-          claimName: registry-pvc
+        - name: htpasswd
+          secret:
+            secretName: docker-registry
+            items:
+            - key: HTPASSWD
+              path: htpasswd
+        - name: storage
+          persistentVolumeClaim:
+            claimName: registry-pvc
       # - name: certs
       #   hostPath:
       #     path: /mnt/registry_data/certs/
@@ -117,13 +153,13 @@ status: {}
 ---
 apiVersion: v1
 kind: Service
-metadata: 
+metadata:
   name: registry
   labels:
     app: registry
-spec: 
+spec:
   type: NodePort
-  ports: 
+  ports:
     - port: 5000
       targetPort: 5000
       protocol: TCP
@@ -133,26 +169,26 @@ spec:
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
- name: registry-ingress
- annotations:
-   nginx.ingress.kubernetes.io/rewrite-target: /
-   kubernetes.io/tls-acme: "true"
-   ingress.kubernetes.io/secure-backends: "true"
-   ingress.kubernetes.io/proxy-body-size: 2046m
-   ingress.kubernetes.io/client-max-body-size: 2046m
-   nginx.ingress.kubernetes.io/proxy-body-size: 2046m
-   nginx.ingress.kubernetes.io/client-max-body-size: 2046m
- namespace: default
+  name: registry-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    kubernetes.io/tls-acme: "true"
+    ingress.kubernetes.io/secure-backends: "true"
+    ingress.kubernetes.io/proxy-body-size: 2046m
+    ingress.kubernetes.io/client-max-body-size: 2046m
+    nginx.ingress.kubernetes.io/proxy-body-size: 2046m
+    nginx.ingress.kubernetes.io/client-max-body-size: 2046m
+  namespace: default
 spec:
- tls:
-   - hosts:
-     - registry.myhost.home
-     secretName: registry-tls-secret
- rules:
-   - host: registry.myhost.home
-     http: 
-       paths:
-         - path: /
-           backend: 
-             serviceName: registry
-             servicePort: 5000
+  tls:
+    - hosts:
+        - registry.myhost.io
+      secretName: registry-tls-secret
+  rules:
+    - host: registry.myhost.io
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: registry
+              servicePort: 5000

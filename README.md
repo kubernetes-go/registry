@@ -3,17 +3,15 @@
 ## 1. generate basic auth
 
 ```sh
-$ mkdir auth
-$ docker run --entrypoint htpasswd registry:2 -Bbn admin admin@123 > auth/htpasswd
-$ sudo cp -a auth/ /mnt/registry_data/
+$ docker run --entrypoint htpasswd --rm registry:2 -Bbn admin admin@123 | base64
 ```
 
 ## 2. generate domain self-siged certificate and private key
 
 ```sh
 # please replace 'registry.myhost.io' by your customize local domain.
-$ openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout registry-domain.key -out registry-domain.crt -subj "/CN=registry.myhost.home/O=registry.myhost.home"
-```
+$ openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout registry-domain.key -out registry-domain.crt -subj "/CN=registry.myhost.io/O=registry.myhost.io"
+```docker 
 
 ## 3. add the cert to Kubernetes
 
@@ -46,7 +44,7 @@ $ kubectl apply -f https://raw.githubusercontent.com/kubernetes-go/registry/mast
 
 ```sh
 # copy to crt folder
-$ sudo cp registry-domain.crt /usr/local/share/ca-certificates/registry.myhost.home.crt
+$ sudo cp registry-domain.crt /usr/local/share/ca-certificates/registry.myhost.io.crt
 # install crt and focre freshed
 $ sudo update-ca-certificates --fresh
 # restart docker daemon
@@ -69,8 +67,8 @@ $ docker login
 
 ```sh
 $ cd sample-asp-net-core-webapi
-$ docker build . -t registry.myhost.home/sample-asp-net-core-webapi:1.0
-$ docker push registry.myhost.home/sample-asp-net-core-webapi:1.0
+$ docker build . -t registry.myhost.io/sample-asp-net-core-webapi:1.0
+$ docker push registry.myhost.io/sample-asp-net-core-webapi:1.0
 ```
 
 ### 6.2 try to deploy the image to Kubernetes
@@ -79,7 +77,7 @@ $ docker push registry.myhost.home/sample-asp-net-core-webapi:1.0
 
 
 ```sh
-$ kubectl create secret docker-registry regcred --docker-server=registry.myhost.home --docker-username=admin --docker-password=admin@123 --docker-email=admin@myhost.home
+$ kubectl create secret docker-registry regcred --docker-server=registry.myhost.io --docker-username=admin --docker-password=admin@123 --docker-email=admin@myhost.io
 ```
 
 #### kubectl apply
